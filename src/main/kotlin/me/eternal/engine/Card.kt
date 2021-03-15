@@ -35,19 +35,19 @@ data class Requirements(val requirementMap: Map<Influence, Int> = mapOf<Influenc
 }
 
 interface Power : Card {
-    fun depleted(): Boolean
+    fun depleted(gameLog: GameLog): Boolean
     fun influences(): Map<Influence, Int>
 }
 
 interface Summon : Card {
-    fun act(): List<Decision>
+    fun act(playerId: PlayerId): List<Decision>
 }
 
 data class Sigil(val influence: Influence) : Power {
     override val id: CardId = CardId("Sigil $influence")
     override fun isPower(): Power? = this
     override fun requirements() = Requirements()
-    override fun depleted() = false
+    override fun depleted(gameLog: GameLog) = false
 
     override fun influences(): Map<Influence, Int> = mapOf(influence to 1).withDefault { 0 }
 }
@@ -56,7 +56,7 @@ object JustPower : Power {
     override val id = CardId("just-power")
     override fun isPower(): Power? = this
     override fun requirements() = Requirements()
-    override fun depleted() = false
+    override fun depleted(gameLog: GameLog) = false
 
     override fun influences() = mapOf(Influence.Gray to 1).withDefault { 0 }
     override fun toString(): String = this.javaClass.simpleName
@@ -69,8 +69,8 @@ data class JustCard(val cost: Int) : Card {
 }
 
 object SeekPower : Card, Summon {
-    override fun act(): List<Decision> {
-        return listOf(DrawSigilDecision)
+    override fun act(playerId: PlayerId): List<Decision> {
+        return listOf(DrawSigilDecision(playerId))
     }
 
     override fun toString() = "SeekPower"

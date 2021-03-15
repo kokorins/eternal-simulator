@@ -11,9 +11,9 @@ import org.slf4j.LoggerFactory
 data class PlayPower(val playerId: PlayerId) : PlayerEngine {
     override fun action(log: GameLogProjection): PlayerRequest? {
         val state = log.gameLog.state
-        val me = state.players.getValue(playerId)
-        if (log.actions.isNotEmpty()) {
-            logger.debug("Waiting for ${log.actions} to be resolved.")
+        val me = state.player(playerId)
+        if (log.upcomingActions.isNotEmpty()) {
+            logger.debug("Waiting for ${log.upcomingActions} to be resolved.")
             return null
         }
         return if (me.powerPlayed) {
@@ -38,8 +38,8 @@ data class PlayPower(val playerId: PlayerId) : PlayerEngine {
 
 data class PlayCard(val playerId: PlayerId, val card: Card) : PlayerEngine {
     override fun action(log: GameLogProjection): PlayerRequest? {
-        if (log.actions.isNotEmpty()) {
-            PlayPower.logger.debug("Waiting for ${log.actions} to be resolved.")
+        if (log.upcomingActions.isNotEmpty()) {
+            PlayPower.logger.debug("Waiting for ${log.upcomingActions} to be resolved.")
             return null
         }
 

@@ -2,7 +2,6 @@ package me.eternal.engine
 
 import me.eternal.decks.Hand
 import me.eternal.decks.OrderedDeck
-import org.slf4j.LoggerFactory
 
 data class GameState(
     val setupLog: SetupLog, var turn: Int, var end: Boolean, val night: Boolean = false,
@@ -27,61 +26,48 @@ data class GameState(
 
     fun receive(event: GameEvent): GameState {
         return when (event) {
-            is GameEvent.DrawCard -> {
-                move(event.playerId, event.idx).from(Zone.Deck).to(Zone.Hand).at(this)
+            is GameEvent.CardDrawn -> {
+                move(event.playerId, event.cardIdx).from(Zone.Deck).to(Zone.Hand).at(this)
             }
-            is GameEvent.EndTurn -> {
+            is GameEvent.TurnFinished -> {
                 this.copy(turn = this.turn + 1)
             }
-            is GameEvent.EndGame -> {
+            is GameEvent.GameFinished -> {
                 this.copy(end = true)
             }
-            is GameEvent.TurnStart -> {
+            is GameEvent.TurnStarted -> {
                 val player = player(event.playerId)
                 this.with(event.playerId, player.copy(powerPlayed = false))
             }
-            is GameEvent.ReplenishPower -> {
+            is GameEvent.PowerReplenished -> {
                 val player = player(event.playerId)
                 this.with(event.playerId, player.copy(power = player.power.replanish()))
             }
-            is GameEvent.PlayCard -> {
-                playCard(event)
+            is GameEvent.CardPlayed -> {
+                //TODO: In case of unit move to Table
+                val player = player(event.playerId)
+                val card = player.hand.get(event.cardIdx)
+                if (card != null) {
+                    move(event.playerId, event.cardIdx).from(Zone.Hand).to(Zone.Void)
+                        .at(with(event.playerId, player.with(player.power.expense(card.requirements()))))
+                } else {
+                    this
+                }
             }
-            is GameEvent.Discard -> {
-                move(event.playerId, event.idx).from(Zone.Hand).to(Zone.Void).at(this)
-            }
-            GameEvent.NextTurn -> TODO()
-        }
-    }
+            is GameEvent.AddPower -> {
+                val player = player(event.playerId)
+                val builder = PlayerState.Builder(player)
+                builder.powerPlayed = true
+                builder.power =
+                    player.power.add(event.influences).incrementMaxPower().incrementPower { !event.depleted }
+                val newPlayerState = builder.build()
+                return this.with(event.playerId, newPlayerState)
 
-    private fun playCard(event: GameEvent.PlayCard): GameState {
-        val player = player(event.playerId)
-        val (newHand, card) = player.hand.extract(event.idx)
-        val power = card?.isPower()
-        val newState = when {
-            power != null -> {
-                playPower(event.playerId, player.with(newHand), power)
             }
-            card != null -> {
-                this.with(event.playerId, player.with(newHand).with(player.power.expense(card.requirements())))
-            }
-            else -> {
-                this
+            is GameEvent.CardDiscarded -> {
+                move(event.playerId, event.cardIdx).from(Zone.Hand).to(Zone.Void).at(this)
             }
         }
-        val summon = card?.isSummon()
-        if (summon != null) {
-            TODO()
-        }
-        return newState
-    }
-
-    private fun playPower(playerId: PlayerId, player: PlayerState, power: Power): GameState {
-        val builder = PlayerState.Builder(player)
-        builder.powerPlayed = true
-        builder.power = player.power.add(power.influences()).incrementMaxPower().incrementPower { !power.depleted() }
-        val newPlayerState = builder.build()
-        return this.with(playerId, newPlayerState)
     }
 
     fun minimalSummary(): String {
@@ -154,6 +140,8 @@ data class PlayerState(
             }
         }
     }
+
+    fun hasEmptyDeck() = deck.cards.isEmpty()
 
     class Builder(
         var hand: Hand,

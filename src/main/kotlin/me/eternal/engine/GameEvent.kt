@@ -1,15 +1,12 @@
 package me.eternal.engine
 
 sealed class GameEvent {
-    data class PlayCard(val playerId: PlayerId, val idx: Int) : GameEvent()
-    data class DrawCard(val playerId: PlayerId, val idx: Int) : GameEvent()
-    data class EndTurn(val playerId: PlayerId) : GameEvent()
-    data class EndGame(val playerId: PlayerId) : GameEvent()
-    data class TurnStart(val playerId: PlayerId) : GameEvent()
-    data class ReplenishPower(val playerId: PlayerId) : GameEvent()
-    object NextTurn : GameEvent() {
-        override fun toString(): String = this.javaClass.simpleName
-    }
-
-    data class Discard(val playerId: PlayerId, val idx: Int) : GameEvent()
+    data class CardPlayed(val playerId: PlayerId, val cardIdx: Int) : GameEvent()
+    data class CardDrawn(val playerId: PlayerId, val cardIdx: Int) : GameEvent()
+    data class TurnFinished(val playerId: PlayerId) : GameEvent()
+    data class GameFinished(val playerId: PlayerId) : GameEvent()
+    data class TurnStarted(val playerId: PlayerId) : GameEvent()
+    data class PowerReplenished(val playerId: PlayerId) : GameEvent()
+    data class CardDiscarded(val playerId: PlayerId, val cardIdx: Int) : GameEvent()
+    data class AddPower(val playerId: PlayerId, val depleted: Boolean, val influences: Map<Influence, Int>) : GameEvent()
 }

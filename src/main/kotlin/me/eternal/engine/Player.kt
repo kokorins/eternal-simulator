@@ -12,10 +12,10 @@ interface Decider {
     fun muligan(order: Int, hand: Hand, muliganCount: Int): Boolean = true
     fun act(log: GameLogProjection): PlayerRequest?
     fun decide(decision: Decision, log: GameLogProjection,
-               default: (PlayerId, GameLogProjection) -> List<PlayerRequest>): List<PlayerRequest> = default(me, log)
+               default: (GameLogProjection) -> List<PlayerRequest>): List<PlayerRequest> = default(log)
 }
 
-inline class PlayerId(val id: Int) {
+inline class PlayerId(private val id: Int) {
     override fun toString(): String {
         return "$id"
     }

@@ -14,7 +14,7 @@ interface PlayerEngine {
 class TurnLimiter(val playerId: PlayerId, val numTurns: Int = 10) : PlayerEngine {
     override fun action(log: GameLogProjection): PlayerRequest? {
         return if (log.gameLog.state.turn >= numTurns) {
-            if (log.actions.isEmpty()) {
+            if (log.upcomingActions.isEmpty()) {
                 logger.info("End Requested on turn ${log.gameLog.state.turn}.")
                 EndGameRequest(playerId)
             } else {

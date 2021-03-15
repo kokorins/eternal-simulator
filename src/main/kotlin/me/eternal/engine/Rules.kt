@@ -1,10 +1,10 @@
 package me.eternal.engine
 
 import me.eternal.decks.FullLibrary
+import me.eternal.decks.OrderedCard
 import me.eternal.engine.Influence.Companion.colors
 import me.eternal.engine.Influence.Companion.covers
 import me.eternal.engine.Influence.Companion.summary
-import me.eternal.decks.OrderedCard
 
 data class Field(val cards: MutableMap<Int, OrderedCard> = mutableMapOf())
 
@@ -28,7 +28,7 @@ data class PowerState(
     fun expense(requirements: Requirements) = this.copy(power = this.power - requirements.power())
     fun replanish() = this.copy(power = maxPower)
     fun incrementMaxPower() = this.copy(maxPower = this.maxPower + 1)
-    fun incrementPower(predicate: ()->Boolean) = if(predicate()) {
+    fun incrementPower(predicate: () -> Boolean) = if (predicate()) {
         this.copy(power = this.power + 1)
     } else {
         this
@@ -53,9 +53,9 @@ interface Rules {
     fun numMuligans(): Int
     fun initialHand(muliganCount: Int): Int
     fun initialDrawStrategy(muliganCount: Int): InitialDrawStrategy
-    fun turnStarter(gameState: GameState): List<GameAction>
-    fun turnFinisher(log: GameLog, players: Map<PlayerId, Player>): List<GameAction>
     fun handThreshold(): Int
+    fun checkGameEnd(log: GameLog): PlayerId?
+    fun exceedAmount(log: GameLog): List<GameAction>
 }
 
 object Throne : Rules {
@@ -74,34 +74,27 @@ object Throne : Rules {
         }
     }
 
-    override fun turnStarter(gameState: GameState): List<GameAction> {
-        val playerId = gameState.currentPlayer()
-        val playersAction = listOf(TurnStart(playerId), DrawACard(playerId))
-        return if (gameState.night) {
-            playersAction.plus(DrawACard(playerId))
-        } else {
-            playersAction
-        }
-    }
-
-    override fun turnFinisher(log: GameLog, players: Map<PlayerId, Player>): List<GameAction> {
-        fun exceedAmount(players: Map<PlayerId, PlayerState>) =
-            players.mapValues { (_, ps) ->
-                ps.hand.cards.size - this.handThreshold()
-            }.filterValues { it > 0 }.mapValues { (_, n) -> DiscardDecision(n) }
-
-        val state = log.state
-        val playerLost = state.players.filterValues { ps -> ps.deck.cards.isEmpty() }
-        if (playerLost.isNotEmpty()) {
-            return listOf(EndGameRequest(playerLost.keys.first()))
-        }
-        val discardDecisions = exceedAmount(state.players)
-        val actions = discardDecisions.flatMap { (playerId, decision) ->
-            decision.make(playerId, GameLogProjection(log, listOf()), players)
-        }
-
-        return actions.plus(TurnEnd(this, players))
-    }
+//    override fun turnStarter(log: GameLog): List<GameAction> {
+//        val playerId = log.nextPlayer()
+//        val playersAction = listOf(TurnStart(playerId), DrawCard(playerId))
+//        return if (log.night()) {
+//            playersAction.plus(DrawCard(playerId)).reversed()
+//        } else {
+//            playersAction.reversed()
+//        }
+//    }
 
     override fun handThreshold(): Int = 11
+
+    override fun checkGameEnd(log: GameLog): PlayerId? {
+        return log.playersInOrder()
+            .firstOrNull { (_, player) -> player.hasEmptyDeck() }
+            ?.let { (playerId, _) -> playerId }
+    }
+
+    override fun exceedAmount(log: GameLog): List<GameAction> {
+        return log.players().mapValues { (_, player) ->
+            player.hand.cards.size - this.handThreshold()
+        }.filterValues { it > 0 }.map { (playerId, n) -> Discard(playerId, n) }
+    }
 }

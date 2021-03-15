@@ -2,31 +2,51 @@ package me.eternal.engine
 
 import org.slf4j.LoggerFactory
 
-class Phase(val players: Map<PlayerId, Player>) {
-    fun play(gameLog: GameLog, setup: List<GameAction>): List<GameAction> {
-        val actions = setup.toMutableList()
-        val counterOrder = gameLog.setupLog.orderStarting(gameLog.state.currentPlayer())
+class Phase(val players: Map<PlayerId, Player>, val engine: GameEngine) {
+    fun react(gameLog: GameLog, request: PlayerRequest): GameLog {
+        return if (valid(request)) {
+            consecutive(gameLog, listOf(request.toAction()))
+        } else {
+            logger.warn("Received invalid $request")
+            gameLog
+        }
+    }
+
+    fun consecutive(gameLog: GameLog, upcomingActions: List<GameAction>): GameLog {
+        var log = gameLog
+        var actions = upcomingActions
+        while (actions.isNotEmpty()) {
+            actions = simultaneous(gameLog, actions)
+            val pair = engine.resolve(gameLog, actions)
+            log = pair.first
+            actions = pair.second
+        }
+        return log
+    }
+
+    private fun simultaneous(gameLog: GameLog, upcomingActions: List<GameAction>): List<GameAction> {
+        var actions = upcomingActions
+        val counterOrder = gameLog.setupLog.playersOrder(gameLog.state.currentPlayer())
         while (true) {
-            val action = counterOrder.asSequence().map { it to players.getValue(it) }
-                    .map { (pId, p) ->
-                        p.act(gameLog.projection(pId, actions.toList()))
-                    }.firstOrNull()
-            if (action != null) {
-                if (valid(action)) {
-                    actions.add(action)
+            val firstRequest = counterOrder.asSequence()
+                .map { players.getValue(it) }
+                .map { it.act(gameLog.projection(actions)) }
+                .firstOrNull()
+            if (firstRequest != null) {
+                if (valid(firstRequest)) {
+                    actions = listOf(firstRequest.toAction()).plus(actions)
                     continue
                 } else {
-                    logger.warn("Received invalid $action.")
+                    logger.warn("Received invalid $firstRequest.")
                 }
-            }
-            else {
+            } else {
                 return actions
             }
         }
     }
 
     private fun valid(request: PlayerRequest): Boolean {
-        return request is DiscardRequest
+        return true
     }
 
     companion object {

@@ -20,9 +20,9 @@ class ChainDecider(val playerId: PlayerId, val muliganEngine: MuliganEngine, val
     }
 
     override fun decide(decision: Decision, log: GameLogProjection,
-                        default: (PlayerId, GameLogProjection) -> List<PlayerRequest>): List<PlayerRequest> {
+                        default: (GameLogProjection) -> List<PlayerRequest>): List<PlayerRequest> {
         return specials.asSequence().map { it.make(decision, log) }.filterNot { it.isEmpty() }.firstOrNull()
-                ?: default(me, log)
+                ?: default(log)
     }
 
     class Builder(val playerId: PlayerId, val engines: MutableList<PlayerEngine> = mutableListOf(),

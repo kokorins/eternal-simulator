@@ -42,6 +42,7 @@ data class Hand(val cards: Map<Int, OrderedCard>) {
 
     fun powers() = select { it.isPower() != null }
     fun nonPowers() = select { it.isPower() == null }
+    fun get(cardIdx: Int) = cards[cardIdx]
 }
 
 data class OrderedCard(val idx: Int, val card: Card) : Card by card

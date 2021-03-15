@@ -3,61 +3,20 @@ package me.eternal.engine
 /**
  * Intention that should happen
  */
-interface GameAction {
-    fun apply(log: GameLog): List<GameEvent>
-}
+interface GameAction
 
-data class TurnStart(val playerId: PlayerId) : GameAction {
-    override fun apply(log: GameLog): List<GameEvent> {
-        return listOf(GameEvent.TurnStart(playerId), GameEvent.ReplenishPower(playerId))
-    }
-}
+data class EndGame(val playerId: PlayerId) : GameAction
 
-data class TurnEnd(val rules: Rules, val players: Map<PlayerId, Player>) : GameAction {
-    override fun apply(log: GameLog): List<GameEvent> {
-        return listOf(GameEvent.EndTurn(log.state.currentPlayer()))
-    }
+object TurnStart : GameAction
 
-    override fun toString() = "TurnEnd"
-}
+data class Discard(val playerId: PlayerId, val numCards: Int) : GameAction
 
-data class DrawACard(val playerId: PlayerId) : GameAction {
-    override fun apply(log: GameLog): List<GameEvent> {
-        val gameState = log.state
-        val player = gameState.players.getValue(playerId)
-        val cardIdx = player.deck.top()
-        return if (cardIdx != null)
-            listOf(GameEvent.DrawCard(playerId, cardIdx))
-        else {
-            listOf(GameEvent.EndGame(playerId))
-        }
-    }
-}
+data class DiscardCard(val playerId: PlayerId, val idx: Int) : GameAction
 
-/**
- * An special action required from player, there always should be default fallback
- */
-interface Decision {
-    fun default(playerId: PlayerId, log: GameLogProjection): List<PlayerRequest>
-    fun make(playerId: PlayerId, log: GameLogProjection, players: Map<PlayerId, Player>): List<PlayerRequest> =
-            players.getValue(playerId).decider.decide(this, log, this::default)
-}
+object TurnEnd : GameAction
 
-object DrawSigilDecision : Decision {
-    override fun default(playerId: PlayerId, log: GameLogProjection): List<PlayerRequest> {
-        val powers = log.gameLog.state.player(playerId).deck.find { it.power() }
-        val power = powers.firstOrNull()
-        return if (power != null)
-            listOf(DrawCardRequest(playerId, power.idx))
-        else
-            listOf()
-    }
-}
+data class DrawCard(val playerId: PlayerId) : GameAction
 
-data class DiscardDecision(val numCards: Int) : Decision {
-    override fun default(playerId: PlayerId, log: GameLogProjection): List<PlayerRequest> {
-        val player = log.gameLog.state.player(playerId)
-        val cardIdxs = player.hand.cards.keys.take(numCards)
-        return cardIdxs.map { DiscardRequest(playerId, it) }
-    }
-}
+data class TutorCard(val playerId: PlayerId, val cardIdx: Int) : GameAction
+
+data class PlayCard(val playerId: PlayerId, val cardIdx: Int) : GameAction
