@@ -17,18 +17,16 @@ interface DeciderLibrary {
 }
 
 object LocalPlayers : DeciderLibrary {
-    override fun get(player: String, playerId: PlayerId): Decider {
-        return deciders(playerId).getValue(player)
-    }
+    override fun get(player: String, playerId: PlayerId): Decider = deciders(playerId).getValue(player)
 
     private fun deciders(playerId: PlayerId) = mapOf(
-            "dummy" to Dummy(playerId),
-            "play-power" to ChainDecider.builder(playerId) {
-                muliganEngine = power(atLeast(2))
-                add(TurnLimiter(playerId))
-                add(PlayPower(playerId))
-                add(PlayCard(playerId, SeekPower))
-                special(DiscardNonPowerFirst(playerId))
-            }.build()
+        "dummy" to Dummy(playerId),
+        "play-power" to ChainDecider.builder(playerId) {
+            muliganEngine = power(atLeast(2))
+            add(TurnLimiter(playerId))
+            add(PlayPower(playerId))
+            add(PlayCard(playerId, SeekPower))
+            special(DiscardNonPowerFirst(playerId))
+        }.build()
     )
 }

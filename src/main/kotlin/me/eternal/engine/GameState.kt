@@ -79,6 +79,10 @@ data class GameState(
     private fun playersMinimalSummary(): String {
         return players.map { (playerId, state) -> "$playerId: ${state.minimalSummary()}" }.joinToString { it }
     }
+
+    companion object {
+        fun init(setupLog: SetupLog) = GameState(setupLog, 0, false)
+    }
 }
 
 data class PlayerState(

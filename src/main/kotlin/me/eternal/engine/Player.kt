@@ -24,13 +24,13 @@ inline class PlayerId(private val id: Int) {
 data class Player(val name: String, val deck: Deck, val decider: Decider) : Decider by decider
 
 interface PlayerProvider {
-    fun create(playerId: PlayerId, player: String, deck: String): Player
+    fun create(playerId: PlayerId, player: String, deck: String): Pair<PlayerId, Player>
 }
 
 object DefaultPlayerProvider : PlayerProvider {
     private val deckLibrary: DeckLibrary = LocalLibrary
     private val playerLibrary: DeciderLibrary = LocalPlayers
-    override fun create(playerId: PlayerId, player: String, deck: String): Player {
-        return Player(player, deckLibrary.get(deck), playerLibrary.get(player, playerId))
+    override fun create(playerId: PlayerId, player: String, deck: String): Pair<PlayerId, Player> {
+        return playerId to Player(player, deckLibrary.get(deck), playerLibrary.get(player, playerId))
     }
 }

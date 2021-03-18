@@ -16,12 +16,18 @@ class Game(private val players: Map<PlayerId, Player>, private val rules: Rules,
         var seed = 0
         lateinit var rules: Rules
 
-        fun addPlayer(playerId: String, deck: String) {
-            players.add(playerId to deck)
+        fun addPlayer(deciderName: String, deck: String) {
+            players.add(deciderName to deck)
         }
 
         fun build(): Game {
-            return Game(players.mapIndexed { i, (p, d) -> PlayerId(i) to playerProvider.create(PlayerId(i), p, d) }.toMap(), rules, seed)
+            return Game(
+                players.mapIndexed { i, (player, deck) ->
+                    playerProvider.create(PlayerId(i), player, deck)
+                }.toMap(),
+                rules,
+                seed
+            )
         }
     }
 
