@@ -62,7 +62,10 @@ interface Summary {
     }
 }
 
-class CombinedSummary<T>(val name: String, val playerId: PlayerId, val summaries: List<Summary.KeyedSequence<T, *>>) :
+class CombinedSummary<T>(
+    private val name: String,
+    private val summaries: List<Summary.KeyedSequence<T, *>>
+) :
     Summary {
     override fun analyze(log: GameLog) {
         var state = GameState.init(log.setupLog)
@@ -84,14 +87,14 @@ class CombinedSummary<T>(val name: String, val playerId: PlayerId, val summaries
     }
 
     companion object {
-        fun powerProfile(playerId: PlayerId) = CombinedSummary("power-profile", playerId, listOf(
+        fun powerProfile(playerId: PlayerId) = CombinedSummary("power-profile", listOf(
             Summary.KeyedSequence(
                 "active-power",
                 before<Pair<Int, Int>> { _, event -> event is GameEvent.TurnFinished }
                     .calculate { state ->
                         state.turn to state.player(playerId).power.power
                     }.aggregate {
-                        val turns = it.groupBy({ pair -> pair.first }, {pair->pair.second})
+                        val turns = it.groupBy({ pair -> pair.first }, { pair -> pair.second })
                         val builder = StringBuilder()
                         for ((turn, power) in turns) {
                             builder.appendLine("Median on turn $turn: ${Quantiles.median().compute(power)}")
@@ -104,7 +107,7 @@ class CombinedSummary<T>(val name: String, val playerId: PlayerId, val summaries
                     .calculate { state ->
                         state.turn to state.player(playerId).power.maxPower
                     }.aggregate {
-                        val turns = it.groupBy({ pair -> pair.first }, {pair->pair.second})
+                        val turns = it.groupBy({ pair -> pair.first }, { pair -> pair.second })
                         val builder = StringBuilder()
                         for ((turn, power) in turns) {
                             builder.appendLine("Median on turn $turn: ${Quantiles.median().compute(power)}")
